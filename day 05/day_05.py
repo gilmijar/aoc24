@@ -18,6 +18,12 @@ def filter_rules(seq: tuple, ruleset: list) -> list:
     return list(valid_rules)
 
 
+def calc_precedents(pool: list, the_rule: tuple) -> int:
+    """see how many other rules depend on this one"""
+    pr = [r for r in pool if r[1] == the_rule[0]]
+    return len(pr)
+
+
 # filename = "test_input"
 filename = "input"
 
@@ -47,13 +53,12 @@ invalid_updates = [upd for upd in updates if not all(map(lambda rule: validate(u
 fixed_updates = []
 for update in map(list, invalid_updates):
     applicable_rules = my_rule_filter(update)
-    # lazy-ass fix: go through rules a few times to hopefully fix all that were violated in the first pass
-    for _ in range(2):
-        for rule in applicable_rules:
-            if validate(update, rule):
-                continue
-            update.insert(update.index(rule[1]), update.pop(update.index(rule[0])))  # this moves the number/page
-
+    precedents = partial(calc_precedents, applicable_rules)
+    ordered_rules = sorted(applicable_rules, key=precedents)  # fix first argument so we can use inside sorted
+    for rule in ordered_rules:
+        if validate(update, rule):
+            continue
+        update.insert(update.index(rule[1]), update.pop(update.index(rule[0])))  # this moves the number/page
     fixed_updates.append(update)
 
 # print(*fixed_updates, sep='\n')
