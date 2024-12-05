@@ -1,5 +1,3 @@
-
-
 def pairwise(coll):
     iter_col = iter(coll)
     mem = next(iter_col)
