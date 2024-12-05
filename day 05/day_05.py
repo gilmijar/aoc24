@@ -40,9 +40,8 @@ print("Part Two", '\n')
 """
 For each seq:
 1. eliminate rules that don't apply
-2. find rule without precedent
-3. put first term of that rule at the start
-4. for each rule make a minimal change to satisfy it.
+2. order rules
+3. for each rule make a minimal change to satisfy it.
     * if not already satisfied
     * take the first term out of list
     * put the first term right before the second term
