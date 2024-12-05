@@ -48,7 +48,7 @@ fixed_updates = []
 for update in map(list, invalid_updates):
     applicable_rules = my_rule_filter(update)
     # lazy-ass fix: go through rules a few times to hopefully fix all that were violated in the first pass
-    for _ in range(4):
+    for _ in range(2):
         for rule in applicable_rules:
             if validate(update, rule):
                 continue
