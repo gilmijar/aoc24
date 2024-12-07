@@ -1,4 +1,7 @@
 from bisect import bisect_left, bisect_right
+from dataclasses import dataclass
+from copy import deepcopy
+from functools import partial
 
 
 class Guard:
@@ -19,12 +22,13 @@ class Guard:
                 return cls((row, col), axis, direction)
         raise ValueError("Guard not found!")
 
-    def __init__(self, start: tuple, is_vertical: bool, direction: int):
+    def __init__(self, start: tuple, vertical: bool, direction: int):
         self.row: int = start[0]
         self.col: int = start[1]
         self.mem: set = {self.position}
-        self.vertical = is_vertical
-        self.direction = direction
+        self.vertical: bool = vertical
+        self.direction: int = direction
+        self.legs: list = []
 
     def _v_toggle(self):
         self.vertical ^= True
@@ -37,17 +41,48 @@ class Guard:
         if self.vertical:
             steps = abs(self.row - stop) - 1
             trace = [(self.row + self.direction * step, self.col) for step in range(steps)]  # col is fixed
+            alignment = 'vertical' if self.vertical else 'horizontal'
+            leg = Leg(alignment, self.direction, self.col, self.row, -1)
             self.row += steps * self.direction
+            leg.stop = self.row
         else:
             steps = abs(self.col - stop) - 1
             trace = [(self.row, self.col + self.direction * step) for step in range(steps)]  # row is fixed
+            alignment = 'vertical' if self.vertical else 'horizontal'
+            leg = Leg(alignment, self.direction, self.row, self.col, -1)
             self.col += steps * self.direction
+            leg.stop = self.col
         self.mem.update(trace)
         self.mem.add(self.position)
+        self.legs.append(leg)
+        return trace
+
+    def check_cycle(self):
+        tested_leg = self.legs[-1]
+        return any((tested_leg in other_leg) for other_leg in self.legs[:-2])
 
     @property
     def position(self):
         return self.row, self.col
+
+
+@dataclass
+class Leg:
+    alignment: str
+    direction: int
+    number: int
+    start: int
+    stop: int
+
+    def _overlaps(self, other):
+        return self.number == other.number and \
+               self.alignment == other.alignment and \
+               self.direction == other.direction and \
+               min(self.start, self.stop) <= max(other.start, other.stop) and \
+               max(self.start, self.stop) >= min(other.start, other.stop)
+
+    def __contains__(self, item):
+        return self._overlaps(item)
 
 
 def show_map(y, x, obs, g):
@@ -66,39 +101,24 @@ def show_map(y, x, obs, g):
                 print(".", end='')
         print()
 
-
-# filename = "test_input"
-filename = "input"
-
-data = open(filename, "r").read().strip('\n').splitlines()
-max_rows = len(data)
-max_cols = len(data[0])
-
-obst_rows = [[c for c, symbol in enumerate(row) if symbol == "#"] for row in data]
-# it should be easier to identify obstacles if we have them indexed by column-firs also (e.g. when moving vertically)
-obst_cols = [[r for r, symbol in enumerate(col) if symbol == "#"] for col in zip(*data)]
-
-guard = Guard.make_guard(data)
-obstacle = None
-done = False
-while not done:
-    if guard.vertical:
-        the_column = obst_cols[guard.col]
-        if guard.direction < 0:
-            obstacle_ind = bisect_right(the_column, guard.row) - 1
+def find_obstacle(obs_rows, obs_cols, g):
+    if g.vertical:
+        the_column = obs_cols[g.col]
+        if g.direction < 0:
+            obstacle_ind = bisect_right(the_column, g.row) - 1
         else:
-            obstacle_ind = bisect_left(the_column, guard.row)
+            obstacle_ind = bisect_left(the_column, g.row)
         try:
             obstacle = the_column[obstacle_ind]
         except IndexError:
             obstacle = max_rows
             done = True
     else:
-        the_row = obst_rows[guard.row]
-        if guard.direction < 0:
-            obstacle_ind = bisect_right(the_row, guard.col) - 1
+        the_row = obs_rows[g.row]
+        if g.direction < 0:
+            obstacle_ind = bisect_right(the_row, g.col) - 1
         else:
-            obstacle_ind = bisect_left(the_row, guard.col)
+            obstacle_ind = bisect_left(the_row, g.col)
         try:
             obstacle = the_row[obstacle_ind]
         except IndexError:
@@ -107,13 +127,54 @@ while not done:
     if obstacle_ind < 0:
         obstacle = -1
         done = True
-    guard.move(obstacle)
-    # When guard has moved to next obstacle she turns
-    guard.turn()
-    # show_map(max_rows, max_cols, obst_rows, guard)
+    return obstacle, done
 
-print('\n', len(guard.mem))
-print('====')
-# print(*obst_rows, sep='\n')
-# print('====')
-# print(*obst_cols, sep='\n')
+
+def action(obs_rows, obs_cols, g):
+    obstacle = None
+    done = False
+    diversions = []
+    while not done:
+        obstacle, done = find_obstacle(obs_rows, obs_cols, g)
+        g.move(obstacle)
+        # When g has moved to next obstacle she turns
+        g.turn()
+
+
+def action_2(obs_rows, obs_cols, g):
+    obstacle = None
+    done = False
+    diversions = []
+    while not done:
+        obstacle, done = find_obstacle(obs_rows, obs_cols, g)
+        new_g = deepcopy(g)
+        trace = g.move(obstacle)
+        for pos in trace:
+            if new_g.vetical:
+                obstacle = pos[0]
+
+        # When g has moved to next obstacle she turns
+        g.turn()
+
+
+if __name__ == "__main__":
+    filename = "test_input"
+    # filename = "input"
+
+    data = open(filename, "r").read().strip('\n').splitlines()
+    max_rows = len(data)
+    max_cols = len(data[0])
+
+    obst_rows = [[c for c, symbol in enumerate(row) if symbol == "#"] for row in data]
+    # it should be easier to identify obstacles if we have them indexed by column-first (e.g. when moving vertically)
+    obst_cols = [[r for r, symbol in enumerate(col) if symbol == "#"] for col in zip(*data)]
+
+    _action = partial(action, obst_rows, obst_cols)
+
+    guard = Guard.make_guard(data)
+
+    _action(guard)
+
+    print('\n', len(guard.mem))
+    print('\n   Part 2   \n')
+
