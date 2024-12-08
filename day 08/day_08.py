@@ -1,3 +1,6 @@
+from itertools import combinations
+
+
 def calc_bb(point, bounds):
     distances = min(point[0], bounds[0] - 1 - point[0]), min(point[1], bounds[1] - 1 - point[1])
     bb = {
@@ -18,6 +21,49 @@ def calc_antinode(point, other):
     r = r1 - r2 + r1
     c = c1 - c2 + c1
     return r, c
+
+
+def calc_harm(points, bounds):
+    r1, c1 = points[0]
+    r2, c2 = points[1]
+    step = r2 - r1
+    rise = c2 - c1
+    skip = r1 % step
+    shift = c1 - rise * (r1 // step)
+    rows = range(skip, bounds[0], step)
+    if rise < 0:
+        cols = range(shift, -1, rise)
+    else:
+        cols = range(shift, bounds[1], rise)
+    return [(r, c) for r, c in zip(rows, cols) if 0 <= c < bounds[1]]
+
+
+def cmp(antinodes, board):
+    print(' '+''.join(map(str, range(len(board[0])))))
+    for r, row in enumerate(board):
+        print(r, end='')
+        for c, mark in enumerate(row):
+            if mark not in '.' and (r, c) not in antinodes:
+                print('*', end='')
+            elif mark == '.' and (r, c) in antinodes:
+                print('!', end='')
+            else:
+                print(mark, end='')
+        print()
+
+
+def show(antinodes, board):
+    print('   ' + ' '.join(map(str, range(len(board[0])))))
+    for r, row in enumerate(board):
+        print(f'{r: =2}', end=' ')
+        for c, mark in enumerate(row):
+            if mark not in '.' and (r, c) in antinodes:
+                print(mark, end=' ')
+            elif (r, c) in antinodes:
+                print('#', end=' ')
+            else:
+                print('.', end=' ')
+        print()
 
 
 # filename = 'test'
@@ -43,3 +89,20 @@ for freq in frequencies:
         focals.update(calc_antinode(antenna, other_antenna) for other_antenna in antennae if in_bb(other_antenna, a_bb))
 
 print(len(focals))
+print("\nPart 2\n")
+
+focals = set()
+for freq in frequencies:
+    print(f"{freq=}")
+    antenna_pairs = combinations(sorted(locations[freq]), 2)
+    for antenna, other_antenna in antenna_pairs:
+        print(antenna, other_antenna)
+        harmonics = calc_harm((antenna, other_antenna), (max_row, max_col))
+        focals.update(harmonics)
+        print(harmonics)
+
+print()
+print("harmonics count:", len(focals))
+# for p in sorted(focals):
+#     print(p)
+
