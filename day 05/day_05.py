@@ -24,7 +24,7 @@ def calc_precedents(pool: list, the_rule: tuple) -> int:
     return len(pr)
 
 
-# filename = "test_input"
+# filename = "test"
 filename = "input"
 
 data = open(filename, "r").read().splitlines()
