@@ -1,4 +1,3 @@
-from timeit import timeit
 from math import log10
 from array import array
 from multiprocessing import Pool
