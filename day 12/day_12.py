@@ -13,9 +13,7 @@ class Plot:
         self.perimeter: int = 4
         self.last: complex = spec.position
         # for P2
-        self.faces: dict = {
-            'up': set(), 'down': set(), 'left': set(), 'right': set()
-        }
+        self.walls = 4
 
     @property
     def area(self):
@@ -24,6 +22,10 @@ class Plot:
     @property
     def price(self):
         return self.area * self.perimeter
+
+    @property
+    def rebate_price(self):
+        return self.area * self.walls
 
     def is_neighbor(self, item):
         if item.plant != self.plant:
@@ -48,6 +50,12 @@ class Plot:
         # and also take away from old perim.
         self.perimeter += 4 - 2*touch_facets
         self.last = item.position
+        kernel = [
+            1, -2, 1,
+            -2, 2, 0
+        ]
+
+        self.walls += self._apply_kernel(self.last, kernel)
 
     def merge(self, other):
         # we assume that merging will always occur between
@@ -55,9 +63,29 @@ class Plot:
         # and a plot in the previous row (right below the item)
         self.perimeter += other.perimeter - 2
         self.members.update(other.members)
+        self.walls += other.walls
+        merge_kernel = [
+            0, -2, 2,
+            0,  0, 0
+        ]
+        self.walls += self._apply_kernel(self.last, merge_kernel)
+
+    def _apply_kernel(self, position, kernel):
+        offsets = [
+            -1-1j, -1, -1+1j,
+              -1j,  0,    1j
+        ]
+        patch = [1 if ((position + off) in self.members) else -1 for off in offsets]
+        if patch[0] == -1:
+            k2 = [
+                -1, -2, 1,
+                -2, 2, 0
+            ]
+            return sum(ker * pat for ker, pat in zip(k2, patch))
+        return sum(ker * pat for ker, pat in zip(kernel, patch))
 
     def __str__(self):
-        return f'{self.plant}: {self.area=}, {self.perimeter=}' \
+        return f'{self.plant}: {self.area=}, {self.perimeter=}, {self.walls=}' \
                f', pos=({self.position.real:n}, {self.position.imag:n})' \
                f', last=({self.last.real:n}, {self.last.imag:n})'
 
@@ -93,3 +121,5 @@ if __name__ == '__main__':
     print(f'Elapsed total time: {mono() - t00:0.3f} sec')
     print(*sorted(all_plots, key= lambda x: (x.position.real, x.position.imag)), sep='\n')
     print(sum(p.price for p in all_plots))
+    print(sum(p.rebate_price for p in all_plots))
+    print(len(all_plots))
