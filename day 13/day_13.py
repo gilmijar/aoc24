@@ -5,6 +5,7 @@ from collections import namedtuple
 class Unsolvable(Exception):
     pass
 
+
 def in_line(t, a, b):
     """
     0 - not in line with either A or B
@@ -34,10 +35,10 @@ def solve(T, A, B):
     aB = F(By, Bx)
     b = Ty - aA * Tx
     x_1 = -b / (aA - aB)
-    if x_1.denominator != 1:
-        raise Unsolvable("Stars don't align for this one.")
-    B_multiple = x_1 // Bx
-    A_multiple = (Tx - x_1) // Ax
+    B_multiple = x_1 / Bx
+    A_multiple = (Tx - x_1) / Ax
+    if B_multiple.denominator != 1 or A_multiple.denominator != 1:
+        raise Unsolvable(f"Stars don't align for this one")
     return A_multiple, B_multiple
 
 
@@ -50,7 +51,10 @@ def parse_button(ln):
 def parse_prize(ln):
     x = ln.split('=')[1].split(',')[0]
     y = ln.split('=')[2]
-    return xy(int(x), int(y))
+    target_correction = 0
+    # comment/uncomment for Part 2
+    target_correction = 10_000_000_000_000
+    return xy(int(x) + target_correction, int(y) + target_correction)
 
 
 Game = namedtuple('Game', 't a b')
@@ -88,7 +92,8 @@ if __name__ == '__main__':
                 if not in_cone(*game):
                     raise Unsolvable("The CONE will not accept ths")
                 else:
-                    play = gameplay(*solve(*game))
+                    solution = gameplay(*solve(*game))
+                    play = solution
         except Unsolvable as e:
             print(f"Game {i}, can't solve: {e}")
         else:
