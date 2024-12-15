@@ -34,6 +34,7 @@ if __name__ == '__main__':
     print(len(quad_0_0) * len(quad_1_0) * len(quad_0_1) * len(quad_1_1))
 
     vertical = [complex(half_x, y) for y in range(int(tiles.imag))[10:-10]]
+    horizontal = [complex(x, half_y) for x in range(int(tiles.real))[10:-10]]
 
     start = int(argv[1]) if len(argv) >= 2 else 0
     jump = int(argv[2]) if len(argv) >= 3 else 1
@@ -42,7 +43,8 @@ if __name__ == '__main__':
         if i % 10_000 == start:
             print('.', end='', flush=True)
         new_robots = {cmod(r[0] + r[1] * i, tiles) for r in robots}
-        if all(v in new_robots for v in vertical):
+        if all(v in new_robots for v in vertical) \
+                or all(h in new_robots for h in horizontal):
             print('\nStep', i)
             for y in range(int(tiles.imag)):
                 print()
