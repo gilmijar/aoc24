@@ -38,20 +38,23 @@ if __name__ == '__main__':
 
     start = int(argv[1]) if len(argv) >= 2 else 0
     jump = int(argv[2]) if len(argv) >= 3 else 1
-    horizon = int(argv[3]) if len(argv) >= 4 else 1_000_000
+    horizon = 101*103
     for i in range(start, horizon, jump):
-        if i % 10_000 == start:
-            print('.', end='', flush=True)
         new_robots = {cmod(r[0] + r[1] * i, tiles) for r in robots}
-        if all(v in new_robots for v in vertical) \
-                or all(h in new_robots for h in horizontal):
-            print('\nStep', i)
+        quad_0_0 = [r for r in new_robots if r.real < half_x and r.imag < half_y]
+        quad_1_0 = [r for r in new_robots if r.real > half_x and r.imag < half_y]
+        quad_0_1 = [r for r in new_robots if r.real < half_x and r.imag > half_y]
+        quad_1_1 = [r for r in new_robots if r.real > half_x and r.imag > half_y]
+        quad_sizes = (len(quad_0_0), len(quad_0_1), len(quad_1_0), len(quad_1_1))
+        if max(quad_sizes) > len(robots) / 2:
+            print('\n' * 10)
+            print('Step', i)
+            print()
             for y in range(int(tiles.imag)):
                 print()
                 for x in range(int(tiles.real)):
-                    c = new_robots.count(x + y*1j)
-                    if c > 0:
-                        print(c, end='')
+                    if (x + y*1j) in new_robots:
+                        print('# ', end='')
                     else:
                         print('. ', end='')
-            input('Continue')
+            input(f'   {len(quad_0_0)=}, {len(quad_0_1)=}, {len(quad_1_0)=}, {len(quad_1_1)=}')
